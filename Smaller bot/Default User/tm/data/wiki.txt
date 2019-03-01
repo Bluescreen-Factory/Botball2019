@@ -1,0 +1,48 @@
+Paket Manager
+-------------
+	used by yocto: smart
+	smart update				# must be connected to inet, sync repo
+	smart channel --show		# show repos
+	smart search my-package	# search for software
+	smart install my-package	# install
+    
+WLAN client
+-----------
+	configure wlan
+		vim /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
+		cp /etc/wpa_supplicant/wpa_supplicant-wlan0.conf /etc/wpa_supplicant/wpa_supplicant-wlan0.conf.my  # backup
+	//wpa_cli ter  # terminate actual wlan
+	//systemctl stop hostapd   # did not kill hostapd (?)
+	killall hostapd
+	//ifconfig wlan0 0.0.0.0	# remove static ip
+	wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant-wlan0.conf.my  <--- siehe Beispiel
+	//wpa_cli reconnect # 
+	//dhclient wlan0
+	
+	iw wlan0 link  # test connection
+	
+	see also https://github.com/LACT-Botball-0636/Wallaby-Communication-Library/tree/master/wifi_setup
+	Achtung: lC6scht ntpd manchmal das interface?  -> 	systemctl stop ntpd
+
+	vielleicht geht es auch so:
+	https://github.com/F-WuTS/WLAN-on-Wallaby%20:
+		killall hostapd
+		wpa_cli
+		add_network
+		set_network <number-add_network-returned> ssid "insert-your-ssid-here"
+		set_network <number-add_network-returned> psk "insert-your-password-here"
+		enable_network <number-add_network-returned>
+		save
+		
+	
+
+NTP
+---
+	systemctl stop ntpd
+	set date and time from ntp server:
+		ntpdate 0.at.pool.ntp.org
+	or
+		vim /etc/default/ntpdate
+			NTPSERVERS="0.at.pool.ntp.org"
+			UPDATE_HWCLOCK="yes"
+		ntpdate-sync

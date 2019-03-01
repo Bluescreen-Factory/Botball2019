@@ -1,0 +1,10 @@
+%module mywall  //name of the resulting GO package
+
+// Make mylib_wrap.cxx include this header:
+%{
+#include <wallaby/swallaby.h>
+%}
+
+//%include <wallaby/wallaby.h>
+%include "/usr/include/wallaby/swallaby.h"
+

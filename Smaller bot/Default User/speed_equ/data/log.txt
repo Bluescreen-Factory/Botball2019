@@ -1,0 +1,23 @@
+0 synced
+1 synced
+Selecting
+First: 1
+Ticks: 6412 6460
+vels: 405 400
+Waiting for: 0
+Selecting
+First: 1
+Ticks: 5572 6042
+vels: 410 400
+Waiting for: 0
+Selecting
+First: 1
+Ticks: 6182 5658
+vels: 415 400
+Waiting for: 0
+Selecting
+First: 1
+Ticks: 6899 5247
+vels: 420 400
+Waiting for: 0
+Selecting

@@ -1,0 +1,5 @@
+package mylib
+
+func Foo() int {
+	return 10;
+}

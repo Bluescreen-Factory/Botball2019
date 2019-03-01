@@ -1,0 +1,11 @@
+package main
+
+/*
+   #cgo LDFLAGS: -L/usr/lib/ -lwallaby
+   #include <wallaby/button.h>
+*/
+import "C"
+
+func main() {
+	C.a_button()
+}

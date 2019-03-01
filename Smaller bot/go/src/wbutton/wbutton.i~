@@ -1,0 +1,11 @@
+%module wbutton  //name of the resulting GO package
+
+// Make mylib_wrap.cxx include this header:
+%{
+#include <wallaby/button.h>
+//#include "/usr/include/wallaby/button.h"
+%}
+
+%include <wallaby/button.h>
+//%include "/usr/include/wallaby/button.h"
+
