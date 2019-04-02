@@ -1,0 +1,259 @@
+package main
+
+import (
+	bb "botball"
+	"fmt"
+	wb "wallaby"
+)
+
+type State func() State
+
+var (
+	state_DrivingToLine     State = driveToLine
+	state_AligningWithLine  State = alignWithLine
+	state_DrivingAlongLine  State = driveAlongLine
+	state_CollectingFlufs   State = collectFlufs
+	state_testDrivingFast   State = test_driveFast
+	state_testRotatingExact State = test_rotateExact
+	state_testDrivingBack   State = test_driveBack
+	state_demoCollection    State = demo_collect
+	state_END               State = nil
+)
+
+var drive bb.DifferentialDrive
+var state = state_DrivingToLine
+
+const BLACK_THRESH = 1000
+
+func main() {
+	rightWheel := bb.PoweredWheel{
+		Diameter: 6.9,
+		Motor: bb.Motor{
+			Port: 0,
+			TPR:  2045,
+		},
+	}
+	leftWheel := bb.PoweredWheel{
+		Diameter: 6.9,
+		Motor: bb.Motor{
+			Port: 1,
+			TPR:  1898,
+		},
+	}
+	drive = bb.DifferentialDrive{
+		LeftWheel:  leftWheel,
+		RightWheel: rightWheel,
+		TrackWidth: 13.5,
+	}
+
+	for state != nil {
+		state = state()
+	}
+	fmt.Println("DONE!")
+	wb.Disable_servos()
+	drive.Off()
+}
+
+func test_driveFast() State {
+	fmt.Println("Testing driving fast")
+	<-drive.DriveRegulated(1.4, 200, 50)
+	return state_END
+}
+
+func test_driveBack() State {
+	<-drive.DriveRegulated(-0.4, -3, 150)
+	return state_END
+}
+
+func demo_collect() State {
+	wb.Enable_servos()
+	fmt.Println("Demoing collecting")
+	wb.Set_servo_position(1, 2047)
+	wb.Msleep(1000)
+	<-drive.DriveRegulated(0.5, 10, 100)
+	for i := 0; i < 800; i++ {
+		wb.Set_servo_position(1, 2047-i)
+		wb.Msleep(1)
+	}
+	wb.Wait_for_any_button()
+	fmt.Println("continuing...")
+	wb.Msleep(2000)
+	for i := 0; i < 800; i++ {
+		wb.Set_servo_position(1, 1247-i)
+		wb.Msleep(1)
+	}
+	wb.Msleep(1000)
+	return state_END
+}
+
+func test_rotateExact() State {
+	fmt.Println("Testing exact turning")
+	fmt.Println("-25 deg turn")
+	<-drive.RotateDeg(-25)
+	drive.Freeze()
+	fmt.Println("-30 deg turn")
+	wb.Wait_for_any_button()
+	<-drive.RotateDeg(-30)
+	drive.Freeze()
+	fmt.Println("-35 deg turn")
+	wb.Wait_for_any_button()
+	<-drive.RotateDeg(-35)
+	drive.Freeze()
+	fmt.Println("-40 deg turn")
+	wb.Wait_for_any_button()
+	<-drive.RotateDeg(-40)
+	drive.Freeze()
+	return state_END
+}
+
+func driveToLine() State {
+	fmt.Println("Changed state to driveToLine")
+	fmt.Println("Turning -90deg with r~=40")
+	<-drive.TurnDeg(-90, 37.5)
+	wb.Msleep(500)
+	fmt.Println("Driving until line with back sensor")
+	stopChan := drive.DriveRegulated(0.3, 9999, 100)
+	for wb.Analog(1) < BLACK_THRESH {
+	}
+	fmt.Println("reached line")
+	stopChan <- true
+	wb.Msleep(500)
+	fmt.Println("Rotating 45 deg")
+	<-drive.RotateDeg(45)
+	wb.Msleep(500)
+	fmt.Println("Driving ~5-10cm")
+	<-drive.DriveRegulated(0.3, 10, 100)
+	wb.Msleep(500)
+	fmt.Println("Rotating 45 deg")
+	<-drive.RotateDeg(45)
+	wb.Msleep(500)
+	fmt.Println("Driving until line with back sensor")
+	stopChan = drive.DriveRegulated(0.7, 9999, 100)
+	for wb.Analog(0) < BLACK_THRESH {
+	}
+	stopChan <- true
+	wb.Msleep(500)
+	fmt.Println("Turning 90deg with r=15")
+	<-drive.TurnDeg(90, 15)
+	wb.Msleep(500)
+	return state_END
+	stopChan = drive.DriveRegulated(0.7, 9999, 100)
+	fmt.Println("Driving to line, waiting until analog(0) > BLACK_THRESH")
+	for wb.Analog(0) < BLACK_THRESH {
+	}
+	for wb.Analog(0) > BLACK_THRESH {
+	}
+	fmt.Println("Passed first line")
+	for wb.Analog(0) < BLACK_THRESH {
+	}
+	for wb.Analog(0) > BLACK_THRESH {
+	}
+	fmt.Println("Passed second line")
+	for wb.Analog(0) < BLACK_THRESH {
+	}
+	fmt.Println("Reached third line")
+	stopChan <- true
+	wb.Msleep(500)
+	fmt.Println("Reached line, rotating 70 deg")
+	<-drive.RotateDeg(80)
+	return state_AligningWithLine
+}
+
+func alignWithLine() State {
+	fmt.Println("Changed state to alignWithLine")
+	wb.Msleep(500)
+	spd := 800
+	wb.Cmpc(0)
+	wb.Cmpc(1)
+	wb.Mav(0, spd)
+	wb.Mav(1, -spd)
+	fmt.Println("Tunring until line")
+	for wb.Analog(0) < BLACK_THRESH {
+	}
+	fmt.Println("Line detected")
+	wb.Mav(0, -spd)
+	wb.Mav(1, spd)
+	wb.Msleep(500)
+	wb.Cmpc(0)
+	wb.Cmpc(1)
+	fmt.Println("Turning back until not line")
+	for wb.Analog(0) > BLACK_THRESH {
+	}
+	fmt.Println("Line undetected")
+	wb.Msleep(500)
+	fmt.Println("Turning back until line")
+	for wb.Analog(0) < BLACK_THRESH {
+	}
+	fmt.Println("Line detected")
+	wb.Mav(1, 0)
+	wb.Mav(0, 0)
+	delta0 := wb.Gmpc(0)
+	delta1 := wb.Gmpc(1)
+	fmt.Printf("Deltas: %v, %v\n", delta0, delta1)
+	wb.Msleep(500)
+	fmt.Println("Turning back")
+	wb.Mtp(0, spd, delta0/2)
+	wb.Mtp(1, spd, delta1/2)
+	wb.Bmd(0)
+	if wb.Get_motor_done(1) == 0 {
+		wb.Bmd(1)
+	}
+	return state_DrivingAlongLine
+}
+
+func driveAlongLine() State {
+	fmt.Println("Changed state to drivingAlongLine")
+	wb.Set_servo_position(1, 2047)
+	wb.Msleep(500)
+	fmt.Println("Driving along line")
+	<-drive.DriveRegulated(0.7, 120, 50)
+	return state_CollectingFlufs
+}
+
+func collectFlufs() State {
+	wb.Msleep(500)
+	wb.Enable_servos()
+	wb.Set_servo_position(0, 740)
+	wb.Set_servo_position(1, 2047)
+	wb.Msleep(500)
+	shakeShovel := func() {
+		startPos := wb.Get_servo_position(1)
+		fmt.Printf("Start Pos: %v\n", startPos)
+		for i := 0; i < 8; i++ {
+			if i%2 == 0 {
+				wb.Set_servo_position(1, startPos+110)
+				wb.Msleep(100)
+			} else {
+				wb.Set_servo_position(1, startPos-10)
+				wb.Msleep(100)
+			}
+		}
+		wb.Set_servo_position(1, startPos)
+	}
+	fmt.Println("Starting shoveling")
+	for i := 0; i < 4; i++ {
+		fmt.Println("Shovel down")
+		wb.Set_servo_position(1, 2047)
+		wb.Msleep(250)
+		fmt.Scanln("Driving 10 cm foreward")
+		<-drive.DriveRegulated(0.4, 10, 50)
+		wb.Msleep(250)
+		fmt.Scanln("Driving 4 cm back")
+		<-drive.DriveRegulated(-0.4, -4, 50)
+		wb.Msleep(250)
+		fmt.Println("Shovel up")
+		for i := 0; i < 1497; i++ {
+			wb.Set_servo_position(1, 2047-i)
+			wb.Msleep(1)
+		}
+		wb.Msleep(250)
+		fmt.Println("Shaking shovel")
+		shakeShovel()
+		wb.Msleep(250)
+		fmt.Println("Driving 5 cm back")
+		<-drive.DriveRegulated(-0.4, -5, 50)
+		wb.Msleep(250)
+	}
+	wb.Disable_servos()
+	return state_END
+}
